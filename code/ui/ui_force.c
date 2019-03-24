@@ -778,7 +778,8 @@ qboolean UI_SkinColor_HandleKey(int flags, float *special, int key, int num, int
 
 	uiSkinColor = num;
 
-	UI_FeederSelection(FEEDER_Q3HEADS, uiInfo.q3SelectedHead);
+	Menu_SetFeederSelection(NULL, FEEDER_Q3HEADS, 0, NULL);
+	//UI_FeederSelection(FEEDER_Q3HEADS, uiInfo.q3SelectedHead);
 
     return qtrue;
   }

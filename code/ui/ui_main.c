@@ -687,10 +687,13 @@ const char *UI_GetStripEdString(const char *refSection, const char *refName)
 }
 
 #define	UI_FPS_FRAMES	4
+static char serverInfo[MAX_INFO_STRING];
+static int serverGameType;
 void _UI_Refresh( int realtime )
 {
 	static int index;
 	static int	previousTimes[UI_FPS_FRAMES];
+	static int nextRefresh;
 
 	//if ( !( trap_Key_GetCatcher() & KEYCATCH_UI ) ) {
 	//	return;
@@ -714,6 +717,13 @@ void _UI_Refresh( int realtime )
 		uiInfo.uiDC.FPS = 1000 * UI_FPS_FRAMES / total;
 	}
 
+	if ( nextRefresh < realtime ) {
+		nextRefresh = realtime + 1000;
+
+		// Update the g_gametype once per second, it's unusual for servers to switch them at runtime anyway
+		trap_GetConfigString( CS_SERVERINFO, serverInfo, sizeof(serverInfo) );
+		serverGameType = atoi(Info_ValueForKey(serverInfo, "g_gametype"));
+	}
 
 
 	UI_UpdateCvars();
@@ -1985,7 +1995,7 @@ void UpdateForceStatus()
 	}
 
 
-	if ( !UI_TrueJediEnabled() )
+	if ( !UI_TrueJediEnabled() && serverGameType >= GT_TEAM )
 	{// Take the current team and force a skin color based on it.
 		switch((int)(trap_Cvar_VariableValue("ui_myteam")))
 		{
@@ -5970,6 +5980,59 @@ static const char *UI_SelectedTeamHead(int index, int *actual) {
 	return "";
 }
 
+const char *UI_GetModelWithSkin(const char *model) {
+	static char modelWithSkin[256];
+
+	if ( strchr(model, '/') ) return model;
+	Q_strncpyz( modelWithSkin, model, sizeof(modelWithSkin) );
+	Q_strcat( modelWithSkin, sizeof(modelWithSkin), "/default" );
+
+	return modelWithSkin;
+}
+
+int UI_HeadIndexForModel(const char *model) {
+	char *teamname;
+	int i;
+	int c = 0;
+
+	if ( !model || !model[0] ) {
+		return -1;
+	}
+
+	switch(uiSkinColor)
+	{
+		case TEAM_BLUE:
+			teamname = "/blue";
+			break;
+		case TEAM_RED:
+			teamname = "/red";
+			break;
+		default:
+			teamname = "/default";
+			break;
+	}
+
+	for (i=0; i<uiInfo.q3HeadCount; i++) {
+		if (uiInfo.q3HeadNames[i] && strstr(uiInfo.q3HeadNames[i], teamname)) {
+			if (!Q_stricmp(uiInfo.q3HeadNames[i], model)) {
+				return c;
+			}
+			c++;
+		}
+	}
+	return -1;
+}
+
+void UI_SetTeamColorFromModel(const char *model) {
+	if ( strstr(model, "/blue") ) {
+		uiSkinColor = TEAM_BLUE;
+	} else if ( strstr(model, "/red") ) {
+		uiSkinColor = TEAM_RED;
+	} else {
+		uiSkinColor = TEAM_FREE;
+	}
+}
+
 
 static int UI_GetIndexFromSelection(int actual) {
 	int i, c;
@@ -6298,15 +6361,36 @@ static qhandle_t UI_FeederItemImage(float feederID, int index) {
 		if (index >= 0 && index < uiInfo.q3HeadCount)
 		{ //we want it to load them as it draws them, like the TA feeder
 		      //return uiInfo.q3HeadIcons[index];
-			int selModel = trap_Cvar_VariableValue("ui_selectedModelIndex");
+			const char *playerModel;
+			int selModel;
+
+			if ( serverGameType >= GT_TEAM ) {
+				playerModel = UI_GetModelWithSkin(UI_Cvar_VariableString("team_model"));
+			} else {
+				playerModel = UI_GetModelWithSkin(UI_Cvar_VariableString("model"));
+				UI_SetTeamColorFromModel(playerModel);
+			}
+			selModel = UI_HeadIndexForModel(playerModel);
+
+			//if ( selModel == -1 ) selModel = trap_Cvar_VariableValue("ui_selectedModelIndex");
 
 			if (selModel != -1)
 			{
 				if (uiInfo.q3SelectedHead != selModel)
 				{
+					menuDef_t *menu = Menu_GetFocused();
+					int i;
+
 					uiInfo.q3SelectedHead = selModel;
 					//UI_FeederSelection(FEEDER_Q3HEADS, uiInfo.q3SelectedHead);
 					Menu_SetFeederSelection(NULL, FEEDER_Q3HEADS, selModel, NULL);
+
+					// Dirty, but does the trick: make sure the model is in view
+					if (menu) {
+						for (i = 0; i < menu->itemCount; i++)
+							if (menu->items[i]->special == FEEDER_Q3HEADS)
+								((listBoxDef_t*)menu->items[i]->typeData)->startPos = selModel;
+					}
 				}
 			}
 
