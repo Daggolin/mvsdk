@@ -11,6 +11,12 @@
 #include "../ui/ui_local.h"
 #endif
 
+#if defined(JK2MV_MENU) || defined(JK2_UI)
+#include "ui_local.h"
+extern void UI_WideScreenMode(qboolean on);
+extern vmCvar_t	ui_widescreen;
+#endif
+
 #define SCROLL_TIME_START					500
 #define SCROLL_TIME_ADJUST				150
 #define SCROLL_TIME_ADJUSTOFFSET	40
@@ -738,8 +744,29 @@ void Window_Paint(Window *w, float fadeAmount, float fadeClamp, float fadeCycle)
 		{
 			DC->setColor(w->foreColor);
 		}
+#if defined(JK2MV_MENU) || defined(JK2_UI)
+		if (ui_widescreen.integer && (w->flags & WINDOW_ASPECTCORRECT)) {
+			UI_WideScreenMode(qtrue);
+			if (w->flags & WINDOW_ALIGN_CENTER) {
+				fillRect.x += (0.5f * (uiInfo.screenWidth - SCREEN_WIDTH));
+			}
+			else {
+				float xOffset = 0.5f * ((fillRect.w - (fillRect.w * uiInfo.screenXFactor)) * uiInfo.screenXFactorInv);
+
+				fillRect.x *= uiInfo.screenXFactorInv;
+				fillRect.x += xOffset;
+			}
+			DC->drawHandlePic(fillRect.x, fillRect.y, fillRect.w, fillRect.h, w->background);
+			UI_WideScreenMode(qfalse);
+		}
+		else {
+			DC->drawHandlePic(fillRect.x, fillRect.y, fillRect.w, fillRect.h, w->background);
+		}
+		DC->setColor(NULL);
+#else
 		DC->drawHandlePic(fillRect.x, fillRect.y, fillRect.w, fillRect.h, w->background);
 		DC->setColor(NULL);
+#endif
 	} 
 	else if (w->style == WINDOW_STYLE_TEAMCOLOR) 
 	{
@@ -4447,11 +4474,15 @@ void Item_Model_Paint(itemDef_t *item)
 	{
 		origin[0] = item->textscale;
 	}
-	refdef.fov_x = (modelPtr->fov_x) ? modelPtr->fov_x : w;
-	refdef.fov_y = (modelPtr->fov_y) ? modelPtr->fov_y : h;
 
 	refdef.fov_x = 45;
 	refdef.fov_y = 45;
+
+#if defined(JK2MV_MENU) || defined(JK2_UI)
+	if (ui_widescreen.integer && (item->window.flags & WINDOW_ASPECTCORRECT)) {
+		refdef.fov_x *= uiInfo.screenXFactorInv;
+	}
+#endif
 
 	//refdef.fov_x = (int)((float)refdef.width / 640.0f * 90.0f);
 	//xx = refdef.width / tan( refdef.fov_x / 360 * M_PI );
@@ -4493,7 +4524,6 @@ void Item_Model_Paint(itemDef_t *item)
 
 	DC->addRefEntityToScene( &ent );
 	DC->renderScene( &refdef );
-
 }
 
 
@@ -5724,6 +5754,25 @@ qboolean ItemParse_decoration( itemDef_t *item, int handle ) {
 	return qtrue;
 }
 
+qboolean ItemParse_aspectCorrect( itemDef_t *item, int handle ) {
+#if defined(JK2MV_MENU) || defined(JK2_UI)
+	item->window.flags |= WINDOW_ASPECTCORRECT;
+
+	if (PC_Int_Parse(handle, &item->alignment)) {
+		switch (item->alignment) {
+			case ITEM_ALIGN_CENTER:
+				item->window.flags |= WINDOW_ALIGN_CENTER;
+				break;
+			case ITEM_ALIGN_LEFT:
+			case ITEM_ALIGN_RIGHT:
+			default:
+				break; //do nothing unless I need to use these at some point
+		}
+	}
+#endif
+	return qtrue;
+}
+
 // notselectable
 qboolean ItemParse_notselectable( itemDef_t *item, int handle ) {
 	listBoxDef_t *listPtr;
@@ -6439,6 +6488,7 @@ static keywordHash_t itemParseKeywords[] = {
 	{"cvarTest",		ItemParse_cvarTest,			NULL	},
 	{"desctext",		ItemParse_descText,			NULL	},
 	{"decoration",		ItemParse_decoration,		NULL	},
+	{"aspectCorrect",	ItemParse_aspectCorrect,	NULL	},	//JK2MV_MENU/UI: Expects argument for horizontal alignment style, takes -1 or ITEM_ALIGN_LEFT/RIGHT/CENTER
 	{"disableCvar",		ItemParse_disableCvar,		NULL	},
 	{"doubleclick",		ItemParse_doubleClick,		NULL	},
 	{"elementheight",	ItemParse_elementheight,	NULL	},
