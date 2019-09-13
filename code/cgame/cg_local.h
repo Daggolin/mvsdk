@@ -1302,12 +1302,9 @@ typedef struct
 // all clients to begin playing instantly
 typedef struct {
 	gameState_t		gameState;			// gamestate from server
-	vmglconfig_t		glconfig;			// rendering configuration
 	float			screenXScale;		// derived from glconfig
 	float			screenYScale;
 	//float			screenXBias;
-	float			screenHeight;
-	float			screenWidth;		// virtual screen width (originally 640)
 
 	int				serverCommandSequence;	// reliable command stream counter
 	int				processedSnapshotNum;// the number of snapshots cgame has requested
@@ -1597,7 +1594,11 @@ void CG_NextForcePower_f(void);
 void CG_PrevForcePower_f(void);
 void MV_LoadSettings( const char *info );
 void MV_UpdateCgFlags( void );
-void CG_WideScreenMode(qboolean on);
+
+#ifdef JK2_CGAME
+#include "../ui/ui_shared.h"
+extern displayContextDef_t cgDC;
+#endif
 
 //
 // cg_view.c
@@ -2269,6 +2270,14 @@ extern void *g2WeaponInstances[MAX_WEAPONS];
 /*
 Ghoul2 Insert End
 */
+
+int			trap_PC_AddGlobalDefine			( char *define );
+int			trap_PC_LoadSource				( const char *filename );
+int			trap_PC_FreeSource				( int handle );
+int			trap_PC_ReadToken				( int handle, pc_token_t *pc_token );
+int			trap_PC_SourceFileAndLine		( int handle, char *filename, int *line );
+int			trap_PC_LoadGlobalDefines		( const char* filename );
+void		trap_PC_RemoveAllGlobalDefines	( void );
 
 extern int mvapi;
 

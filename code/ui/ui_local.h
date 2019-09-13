@@ -870,14 +870,6 @@ typedef struct {
 
 	qboolean inGameLoad;
 
-	float		screenHeight;
-	float		screenWidth;
-	float		screenXFactor;
-	float		screenXFactorInv;
-	float		screenYFactor;
-	float		screenYFactorInv;
-	qboolean	portraitMode;
-
 }	uiInfo_t;
 
 extern uiInfo_t uiInfo;
@@ -1202,6 +1194,13 @@ typedef struct postGameInfo_s {
 
 
 #endif
+
+extern int			(*trap_PC_AddGlobalDefine)					(char *define);
+extern int			(*trap_PC_LoadSource)						(const char *filename);
+extern int			(*trap_PC_FreeSource)						(int handle);
+extern int			(*trap_PC_ReadToken)						(int handle, pc_token_t *pc_token);
+extern int			(*trap_PC_SourceFileAndLine)				(int handle, char *filename, int *line);
+extern int			(*trap_PC_LoadGlobalDefines)				(const char* filename);
 
 extern int mvapi;
 
