@@ -768,6 +768,8 @@ void AddScore( gentity_t *ent, vec3_t origin, int score );
 void CalculateRanks( void );
 qboolean SpotWouldTelefrag( gentity_t *spot );
 
+void G_CenterPrint( int targetNum, int autoLineWraps, const char *message );
+
 extern gentity_t *gJMSaberEnt;
 
 //
@@ -822,6 +824,8 @@ const char *G_GetStripEdString(char *refSection, char *refName);
 
 void MV_UpdateMvsdkConfigstring( char *key, char *value );
 void MV_UpdateSvFlags( void );
+
+void G_StringAppendSubstring( char *dst, int dstSize, const char *src, int srcLen );
 
 // On linux rand() behaves different than on Winodws or in a qvm, ...
 void mysrand( unsigned seed );
