@@ -71,6 +71,12 @@ if(BuildQVMs)
 		COMMAND $<TARGET_FILE:${ASM}>
 			"-vq3" "-m" "-v" "-o" "${CMAKE_CURRENT_BINARY_DIR}/vm/ui.qvm" ${MVUIASMFILES} ${MVUIASM}
 
+		COMMAND $<TARGET_FILE:${LCC}>
+			"-DQ3_VM" "-DJK2MV_MENU" "-S" "-Wf-target=bytecode" "-Wf-g" "-I${SRCDir}/cgame" "-I${MVSDK_GAME_PATH}" "-I${MVSDK_UI_PATH}" "-I${MVSDK_BIN_PATH}" ${MVUIVMSOURCES_NATIVE}
+
+		COMMAND $<TARGET_FILE:${ASM}>
+			"-vq3" "-m" "-v" "-o" "${CMAKE_CURRENT_BINARY_DIR}/vm/jk2mvmenu.qvm" ${MVUIASMFILES} ${MVUIASM}
+
 		WORKING_DIRECTORY
 			"${CMAKE_CURRENT_BINARY_DIR}/vm_build"
 
